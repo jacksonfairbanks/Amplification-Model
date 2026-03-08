@@ -402,64 +402,6 @@
             background: var(--bg-tertiary);
         }
 
-        .formulas-section {
-            margin-top: 24px;
-            background: var(--bg-surface);
-            border: 1px solid var(--border-color);
-            border-radius: 0;
-            border-left: 3px solid var(--amber);
-        }
-        .formulas-section summary {
-            padding: 16px 20px;
-            font-size: 0.72rem;
-            font-weight: 700;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            cursor: pointer;
-            list-style: none;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .formulas-section summary::-webkit-details-marker { display: none; }
-        .formulas-section summary::before {
-            content: '▶';
-            font-size: 0.65rem;
-            color: var(--amber);
-            transition: transform 0.2s;
-        }
-        .formulas-section[open] summary::before { transform: rotate(90deg); }
-        .formulas-section summary:hover { color: var(--amber); }
-        .formulas-section .formula-block { padding: 0 20px 20px; }
-        .formula-block {
-            margin-bottom: 20px;
-        }
-        .formula-block:last-child { margin-bottom: 0; }
-        .formula-box {
-            border: 2px solid var(--amber);
-            padding: 14px 18px;
-            margin-bottom: 12px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 1rem;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-        .formula-defs {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            line-height: 1.8;
-        }
-        .formula-defs .formula-source {
-            margin-top: 8px;
-            font-size: 0.75rem;
-        }
-        .formula-defs .formula-source a {
-            color: var(--amber);
-            text-decoration: none;
-        }
-        .formula-defs .formula-source a:hover { text-decoration: underline; }
-
         @media (max-width: 900px) {
             .header-cards { grid-template-columns: repeat(2, 1fr); }
             .main-grid { grid-template-columns: 1fr; }
@@ -557,7 +499,7 @@
 
             <main>
                 <div class="chart-card">
-                    <div class="chart-title" id="chartTitle">25% Amplification with 10% Coupon, 30% NAV CAGR</div>
+                    <div class="chart-title" id="chartTitle">25% Amplification with 10% Dividend, 30% NAV CAGR</div>
                     <div id="chart" class="chart-container"></div>
                 </div>
                 <div class="highlights">
@@ -587,19 +529,6 @@
                     </div>
                 </details>
 
-                <details class="formulas-section" id="formulasDetails">
-                    <summary>Return formulas</summary>
-                    <div class="formula-block">
-                        <div class="formula-box">R<sub>MSTR</sub> = R<sub>BTC</sub> + (Amp. % / (1 − Amp. %)) × (R<sub>BTC</sub> − R<sub>USD</sub>)</div>
-                        <div class="formula-defs">
-                            <strong>R<sub>MSTR</sub></strong> = Expected return of digital equity<br>
-                            <strong>R<sub>BTC</sub></strong> = Expected BTC ARR (annualized rate of return)<br>
-                            <strong>Amp. %</strong> = Digital credit divided by BTC reserve (notional / NAV)<br>
-                            <strong>R<sub>USD</sub></strong> = Digital credit dividend rate<br>
-                            <span class="formula-source">One-period formula — StrategyB / Saylor slide. <a href="https://x.com/BitcoinForCorps/status/2026661911471992966" target="_blank" rel="noopener">Source (X)</a></span>
-                        </div>
-                    </div>
-                </details>
             </main>
         </div>
     </div>
@@ -748,7 +677,7 @@
                 const r = runSimulation();
                 updateHeaderCards(r);
 
-                chartTitle.textContent = r.ampPct + '% Amplification with ' + r.divPct + '% Coupon, ' + r.cagrPct + '% NAV CAGR';
+                chartTitle.textContent = r.ampPct + '% Amplification with ' + r.divPct + '% Dividend, ' + r.cagrPct + '% NAV CAGR';
 
                 highlightsList.innerHTML =
                     '<li>NAV grows from <strong>' + formatB(r.initialNAV) + '</strong> → <strong>' + formatB(r.finalNAV) + '</strong></li>' +
