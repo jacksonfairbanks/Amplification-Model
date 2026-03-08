@@ -44,6 +44,20 @@
 
         .container { position: relative; z-index: 1; max-width: 1800px; margin: 0 auto; padding: 20px; }
 
+        .top-disclaimer {
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px 20px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-align: center;
+        }
+        .top-disclaimer a {
+            color: var(--amber);
+            text-decoration: none;
+        }
+        .top-disclaimer a:hover { text-decoration: underline; }
+
         header {
             position: relative;
             text-align: center;
@@ -457,6 +471,10 @@
     </style>
 </head>
 <body>
+    <div class="top-disclaimer">
+        For educational and informational purposes only. Not financial, legal, or tax advice. Do your own research.
+        · <a href="https://x.com/longgamma" target="_blank" rel="noopener">X: @longgamma</a>
+    </div>
     <header>
         <h1>Amplification Calculator</h1>
         <p class="subtitle">NAV, notional &amp; coupon over time</p>
