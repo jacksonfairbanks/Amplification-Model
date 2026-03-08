@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amplification Calculator | BTC Treasury Analytics</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-panel: #0d0d0d;
+            --bg-surface: #111111;
+            --bg-elevated: #141414;
+            --bg-tertiary: #111111;
+            --bg-card: #0d0d0d;
+            --border-color: #2a2a2a;
+            --border-subtle: #1a1a1a;
+            --amber: #FF7700;
+            --amber-dim: #CC6600;
+            --amber-glow: rgba(255, 119, 0, 0.35);
+            --accent-orange: #FF7700;
+            --accent-green: #00C853;
+            --accent-red: #FF1744;
+            --accent-blue: #4a9eff;
+            --accent-purple: #a855f7;
+            --text-primary: #E0E0E0;
+            --text-secondary: #9E9E9E;
+            --text-muted: #616161;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { scrollbar-color: var(--border-color) var(--bg-tertiary); scrollbar-width: thin; }
+        *::-webkit-scrollbar { width: 8px; height: 8px; }
+        *::-webkit-scrollbar-track { background: var(--bg-tertiary); }
+        *::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 0; }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container { position: relative; z-index: 1; max-width: 1800px; margin: 0 auto; padding: 20px; }
+
+        header {
+            position: relative;
+            text-align: center;
+            padding: 28px 20px 24px;
+            margin-bottom: 24px;
+            background: var(--bg-panel);
+            border-bottom: 2px solid var(--amber);
+            box-shadow: 0 2px 16px var(--amber-glow);
+        }
+        h1 {
+            font-size: 1.5rem; font-weight: 700;
+            color: var(--amber);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+        }
+        .subtitle { color: var(--text-secondary); font-size: 0.85rem; margin-top: 6px; }
+
+        /* Header summary cards */
+        .header-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+        .header-card {
+            background: rgba(255, 119, 0, 0.06);
+            border: 1px solid var(--amber);
+            border-radius: 0;
+            padding: 20px 24px;
+        }
+        .header-card-label {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-bottom: 10px;
+        }
+        .header-card-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--amber);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .header-card-value.green { color: var(--accent-green); }
+        .header-card-value.purple { color: var(--accent-purple); }
+
+        .main-grid { display: grid; grid-template-columns: 340px 1fr; gap: 25px; }
+
+        .control-panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 0;
+            padding: 20px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+        .panel-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+        }
+        .panel-title::before { content: ''; width: 3px; height: 18px; background: var(--amber); border-radius: 0; }
+
+        .control-section {
+            margin-bottom: 16px;
+            padding: 12px 12px 12px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 0;
+            background: var(--bg-surface);
+            border-left: 3px solid var(--amber);
+        }
+        .control-group { margin-bottom: 14px; }
+        .control-group:last-child { margin-bottom: 0; }
+        .control-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+        }
+        .control-label .label-wrap { display: inline-flex; align-items: center; gap: 6px; }
+        .context-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            cursor: help;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .context-icon:hover { color: var(--amber); border-color: var(--amber); }
+        .context-tooltip {
+            position: absolute;
+            left: 50%;
+            bottom: calc(100% + 8px);
+            transform: translateX(-50%);
+            width: 240px;
+            max-width: 90vw;
+            padding: 10px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--amber);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            line-height: 1.45;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.15s, visibility 0.15s;
+            pointer-events: none;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+        .context-icon:hover .context-tooltip { opacity: 1; visibility: visible; }
+        .context-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: var(--amber);
+        }
+        .context-tooltip.context-tooltip--below {
+            bottom: auto;
+            top: calc(100% + 8px);
+        }
+        .context-tooltip.context-tooltip--below::after {
+            top: auto;
+            bottom: 100%;
+            border-top-color: transparent;
+            border-bottom-color: var(--amber);
+        }
+        .header-card .context-icon { margin-left: 6px; vertical-align: middle; }
+        .header-card .context-tooltip { bottom: auto; top: calc(100% + 8px); }
+        .header-card .context-tooltip::after {
+            top: auto;
+            bottom: 100%;
+            border-top-color: transparent;
+            border-bottom-color: var(--amber);
+        }
+        .header-card-label-wrap { display: inline-flex; align-items: center; }
+        .control-value { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--amber); }
+        .control-value[data-editable] { cursor: pointer; }
+        .control-value[data-editable]:hover { text-decoration: underline; text-underline-offset: 2px; }
+        .control-value-edit {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            color: var(--amber);
+            background: var(--bg-tertiary);
+            border: 1px solid var(--amber);
+            border-radius: 4px;
+            padding: 2px 6px;
+            width: 4.5em;
+            font-size: inherit;
+        }
+        .control-value-edit:focus { outline: none; }
+        .param-suffix { color: var(--amber); font-size: 0.85em; margin-left: 2px; }
+
+        input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 0;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+        input[type="number"]:focus, input[type="text"]:focus { outline: none; border-color: var(--amber); }
+        input.control-value-edit { width: 4.5em; max-width: 4.5em; min-width: 4.5em; box-sizing: border-box; }
+        input.schedule-btc-input {
+            width: 5em; max-width: 5em; min-width: 5em;
+            padding: 2px 6px;
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--amber);
+        }
+        input.schedule-btc-input:focus {
+            border-color: var(--amber);
+            background: var(--bg-tertiary);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: var(--bg-tertiary);
+            border-radius: 0;
+            accent-color: var(--amber);
+        }
+
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 0;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        select:hover, select:focus { outline: none; border-color: var(--amber); }
+
+        .chart-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 0;
+            padding: 20px;
+            margin-bottom: 22px;
+        }
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 15px;
+        }
+        .chart-container { width: 100%; height: 480px; }
+
+        .highlights {
+            padding: 20px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 0;
+            border-left: 3px solid var(--amber);
+        }
+        .highlights h3 {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-bottom: 14px;
+        }
+        .highlights ul { list-style: none; font-size: 0.9rem; color: var(--text-primary); line-height: 1.9; }
+        .highlights li strong { color: var(--amber); }
+        .highlights .note { margin-top: 14px; font-size: 0.85rem; color: var(--text-muted); font-style: italic; }
+
+        .schedule-section {
+            margin-top: 24px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 0;
+            border-left: 3px solid var(--amber);
+        }
+        .schedule-section summary {
+            padding: 16px 20px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .schedule-section summary::-webkit-details-marker { display: none; }
+        .schedule-section summary::before {
+            content: '▶';
+            font-size: 0.65rem;
+            color: var(--amber);
+            transition: transform 0.2s;
+        }
+        .schedule-section[open] summary::before { transform: rotate(90deg); }
+        .schedule-section summary:hover { color: var(--amber); }
+        .schedule-note {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            padding: 0 20px 12px;
+            line-height: 1.5;
+        }
+        .schedule-section .schedule-wrap { padding: 0 20px 20px; max-height: 420px; overflow-y: auto; }
+        .schedule-wrap { overflow-x: auto; }
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .schedule-table th,
+        .schedule-table td {
+            padding: 10px 14px;
+            text-align: right;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .schedule-table th {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.72rem;
+        }
+        .schedule-table th:first-child,
+        .schedule-table td:first-child { text-align: left; }
+        .schedule-table td { color: var(--text-primary); }
+        .schedule-table tr:hover td { background: var(--bg-tertiary); }
+        .schedule-btc-input {
+            -webkit-appearance: none;
+            -moz-appearance: textfield;
+            appearance: none;
+            display: inline-block;
+            width: 5em;
+            max-width: 5em;
+            min-width: 5em;
+            padding: 2px 6px;
+            margin: 0;
+            font-size: inherit;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            line-height: 1.25;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            color: var(--amber);
+            text-align: right;
+            cursor: text;
+            box-sizing: border-box;
+            vertical-align: baseline;
+        }
+        .schedule-btc-input::-webkit-outer-spin-button,
+        .schedule-btc-input::-webkit-inner-spin-button { display: none; }
+        .schedule-btc-input:focus {
+            outline: none;
+            border-color: var(--amber);
+            background: var(--bg-tertiary);
+        }
+
+        .formulas-section {
+            margin-top: 24px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 0;
+            border-left: 3px solid var(--amber);
+        }
+        .formulas-section summary {
+            padding: 16px 20px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .formulas-section summary::-webkit-details-marker { display: none; }
+        .formulas-section summary::before {
+            content: '▶';
+            font-size: 0.65rem;
+            color: var(--amber);
+            transition: transform 0.2s;
+        }
+        .formulas-section[open] summary::before { transform: rotate(90deg); }
+        .formulas-section summary:hover { color: var(--amber); }
+        .formulas-section .formula-block { padding: 0 20px 20px; }
+        .formula-block {
+            margin-bottom: 20px;
+        }
+        .formula-block:last-child { margin-bottom: 0; }
+        .formula-box {
+            border: 2px solid var(--amber);
+            padding: 14px 18px;
+            margin-bottom: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .formula-defs {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.8;
+        }
+        .formula-defs .formula-source {
+            margin-top: 8px;
+            font-size: 0.75rem;
+        }
+        .formula-defs .formula-source a {
+            color: var(--amber);
+            text-decoration: none;
+        }
+        .formula-defs .formula-source a:hover { text-decoration: underline; }
+
+        @media (max-width: 900px) {
+            .header-cards { grid-template-columns: repeat(2, 1fr); }
+            .main-grid { grid-template-columns: 1fr; }
+            .control-panel { position: static; max-height: none; }
+        }
+        @media (max-width: 500px) {
+            .header-cards { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Amplification Calculator</h1>
+        <p class="subtitle">NAV, notional &amp; coupon over time</p>
+    </header>
+
+    <div class="container">
+        <!-- Header summary: 3 cards -->
+        <div class="header-cards">
+            <div class="header-card">
+                <div class="header-card-label header-card-label-wrap">Value at final year<span class="context-icon" aria-label="Context">?<span class="context-tooltip">NAV at the end of the time horizon (after growth and coupon payments).</span></span></div>
+                <div class="header-card-value" id="cardFinalNav">$689B</div>
+            </div>
+            <div class="header-card">
+                <div class="header-card-label header-card-label-wrap">Total return<span class="context-icon" aria-label="Context">?<span class="context-tooltip">Dollar and % gain from initial NAV to final NAV.</span></span></div>
+                <div class="header-card-value green" id="cardTotalReturn">+$639B (+1278%)</div>
+            </div>
+            <div class="header-card">
+                <div class="header-card-label header-card-label-wrap">Annual CAGR<span class="context-icon" aria-label="Context">?<span class="context-tooltip">Computed compound annual growth rate of NAV over the horizon (final NAV vs initial NAV). Lower than assumed BTC growth because dividends are paid out of NAV.</span></span></div>
+                <div class="header-card-value" id="cardAnnualCagr">30%</div>
+            </div>
+            <div class="header-card">
+                <div class="header-card-label header-card-label-wrap">Final fixed income outstanding (notional)<span class="context-icon" aria-label="Context">?<span class="context-tooltip">Notional (fixed income) at end of horizon. Rebalanced each period to amplification % of NAV; dividends paid each period on notional outstanding.</span></span></div>
+                <div class="header-card-value purple" id="cardFinalNotional">$172B</div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <aside class="control-panel">
+                <div class="panel-title">Parameters</div>
+
+                <div class="control-section">
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span class="label-wrap">Initial NAV<span class="context-icon" aria-label="Context">?<span class="context-tooltip">Starting net asset value (NAV) in billions. Range $100M–$100B.</span></span></span>
+                            <span><span class="control-value" id="navDisplay">50</span><span class="param-suffix">B</span></span>
+                        </div>
+                        <input type="range" id="initialNav" min="0.1" max="100" value="50" step="0.1" title="$100M to $100B">
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span class="label-wrap">Amplification target<span class="context-icon" aria-label="Context">?<span class="context-tooltip">Notional is rebalanced each period to this % of NAV. Higher % = more fixed income outstanding.</span></span></span>
+                            <span class="control-value" id="ampDisplay">25%</span>
+                        </div>
+                        <input type="range" id="ampTarget" min="5" max="50" value="25" step="1">
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span class="label-wrap">BTC CAGR<span class="context-icon" aria-label="Context">?<span class="context-tooltip">Assumed compound annual growth rate for NAV (before coupon payments).</span></span></span>
+                            <span class="control-value" id="cagrDisplay">30%</span>
+                        </div>
+                        <input type="range" id="cagr" min="0" max="80" value="30" step="1">
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span class="label-wrap">Dividend rate<span class="context-icon" aria-label="Context">?<span class="context-tooltip">Dividends are paid monthly on notional outstanding (out of NAV). This is separate from rebalancing: rebalancing is how often we reset notional to the target amplification %.</span></span></span>
+                            <span class="control-value" id="divDisplay">10%</span>
+                        </div>
+                        <input type="range" id="dividendRate" min="0" max="30" value="10" step="0.5">
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span class="label-wrap">Rebalancing period<span class="context-icon" aria-label="Context">?<span class="context-tooltip">How often we rebalance: reset notional to target amplification % of NAV (further issuance). Dividends are always paid monthly; this only controls when notional steps up to hit the target.</span></span></span>
+                            <span></span>
+                        </div>
+                        <select id="rebalancingPeriod">
+                            <option value="1">Annual</option>
+                            <option value="4">Quarterly</option>
+                            <option value="12">Monthly</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span class="label-wrap">Time horizon<span class="context-icon" aria-label="Context">?<span class="context-tooltip">Length of the simulation in years.</span></span></span>
+                            <span><span class="control-value" id="horizonDisplay">10</span><span class="param-suffix">years</span></span>
+                        </div>
+                        <input type="range" id="timeHorizon" min="1" max="30" value="10" step="1">
+                    </div>
+                </div>
+            </aside>
+
+            <main>
+                <div class="chart-card">
+                    <div class="chart-title" id="chartTitle">25% Amplification with 10% Coupon, 30% NAV CAGR</div>
+                    <div id="chart" class="chart-container"></div>
+                </div>
+                <div class="highlights">
+                    <h3>Key highlights from the run</h3>
+                    <ul id="highlightsList"></ul>
+                    <p class="note" id="rebalanceNote"></p>
+                </div>
+
+                <details class="schedule-section" id="scheduleDetails">
+                    <summary>Full schedule (monthly)</summary>
+                    <p class="schedule-note">At T0 we assume capital is already raised (NAV and notional start at the target ratio). Additional Bitcoin is added to NAV only from T1 onward, when rebalance issuance is used to buy BTC. Chart is drawn from this schedule. Dividends paid monthly on notional; rebalancing uses the formula so new issuance adds to NAV and restores the target amp %.</p>
+                    <div class="schedule-wrap">
+                        <table class="schedule-table" id="scheduleTable">
+                            <thead>
+                                <tr>
+                                    <th>Month</th>
+                                    <th>Amp %</th>
+                                    <th>NAV (end)</th>
+                                    <th>Portfolio (no amp)</th>
+                                    <th>Notional (end)</th>
+                                    <th>Dividends paid</th>
+                                    <th>BTC price (Theoretical)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="scheduleBody"></tbody>
+                        </table>
+                    </div>
+                </details>
+
+                <details class="formulas-section" id="formulasDetails">
+                    <summary>Return formulas</summary>
+                    <div class="formula-block">
+                        <div class="formula-box">R<sub>MSTR</sub> = R<sub>BTC</sub> + (Amp. % / (1 − Amp. %)) × (R<sub>BTC</sub> − R<sub>USD</sub>)</div>
+                        <div class="formula-defs">
+                            <strong>R<sub>MSTR</sub></strong> = Expected return of digital equity<br>
+                            <strong>R<sub>BTC</sub></strong> = Expected BTC ARR (annualized rate of return)<br>
+                            <strong>Amp. %</strong> = Digital credit divided by BTC reserve (notional / NAV)<br>
+                            <strong>R<sub>USD</sub></strong> = Digital credit dividend rate<br>
+                            <span class="formula-source">One-period formula — StrategyB / Saylor slide. <a href="https://x.com/BitcoinForCorps/status/2026661911471992966" target="_blank" rel="noopener">Source (X)</a></span>
+                        </div>
+                    </div>
+                </details>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const initialNavEl = document.getElementById('initialNav');
+            const cagrEl = document.getElementById('cagr');
+            const dividendRateEl = document.getElementById('dividendRate');
+            const ampTargetEl = document.getElementById('ampTarget');
+            const rebalancingPeriodEl = document.getElementById('rebalancingPeriod');
+            const timeHorizonEl = document.getElementById('timeHorizon');
+            const navDisplay = document.getElementById('navDisplay');
+            const ampDisplay = document.getElementById('ampDisplay');
+            const cagrDisplay = document.getElementById('cagrDisplay');
+            const divDisplay = document.getElementById('divDisplay');
+            const horizonDisplay = document.getElementById('horizonDisplay');
+            const chartTitle = document.getElementById('chartTitle');
+            const highlightsList = document.getElementById('highlightsList');
+            const rebalanceNote = document.getElementById('rebalanceNote');
+            const cardFinalNav = document.getElementById('cardFinalNav');
+            const cardTotalReturn = document.getElementById('cardTotalReturn');
+            const cardAnnualCagr = document.getElementById('cardAnnualCagr');
+            const cardFinalNotional = document.getElementById('cardFinalNotional');
+            var startingBtcPrice = 100000;
+
+            function formatB(n) {
+                if (n >= 1000) return '$' + (n / 1000).toFixed(1) + 'T';
+                if (n < 1) return '$' + Math.round(n * 1000) + 'M';
+                return '$' + n.toFixed(n >= 10 ? 0 : 1) + 'B';
+            }
+
+            function formatNavDisplay(billions) {
+                if (billions >= 1000) return '$' + (billions / 1000).toFixed(1) + 'T';
+                if (billions < 1) return '$' + Math.round(billions * 1000) + 'M';
+                return '$' + (billions >= 10 ? Math.round(billions) : billions.toFixed(1)) + 'B';
+            }
+
+            function runSimulation() {
+                const initialNAV = Math.max(0.1, Math.min(100, Number(initialNavEl.value) || 50));
+                const cagrPct = Number(cagrEl.value) || 30;
+                const divPct = Number(dividendRateEl.value) || 10;
+                const ampTargetPct = Number(ampTargetEl.value) || 25;
+                const stepsPerYear = Number(rebalancingPeriodEl.value) || 1;
+                const horizon = Math.max(1, Math.min(30, Math.floor(Number(timeHorizonEl.value) || 10)));
+
+                const cagr = cagrPct / 100;
+                const divRate = divPct / 100;
+                const ampTarget = ampTargetPct / 100;
+                const totalMonths = horizon * 12;
+                const growthPerMonth = Math.pow(1 + cagr, 1 / 12);
+                var btcPriceStart = Math.max(100, startingBtcPrice);
+
+                function isRebalanceMonth(month) {
+                    if (month <= 0) return false;
+                    if (stepsPerYear === 12) return true;
+                    if (stepsPerYear === 4) return month % 3 === 0;
+                    return month % 12 === 0;
+                }
+
+                let nav = initialNAV;
+                let notional = nav * ampTarget;
+                const schedule = [];
+                schedule.push({
+                    month: 0,
+                    year: 0,
+                    nav: nav,
+                    notional: notional,
+                    baseOnly: initialNAV,
+                    ampPct: nav > 0 ? (notional / nav) * 100 : ampTargetPct,
+                    dividendsPaid: 0,
+                    btcPrice: btcPriceStart
+                });
+
+                for (let month = 1; month <= totalMonths; month++) {
+                    nav *= growthPerMonth;
+                    var dividendsPaid = notional * (divRate / 12);
+                    nav -= dividendsPaid;
+                    if (isRebalanceMonth(month)) {
+                        var issuance = (ampTarget * nav - notional) / (1 - ampTarget);
+                        if (issuance > 0) {
+                            nav += issuance;
+                            notional += issuance;
+                        } else {
+                            notional = nav * ampTarget;
+                        }
+                    }
+                    const ampPct = nav > 0 ? (notional / nav) * 100 : ampTargetPct;
+                    var btcPrice = btcPriceStart * Math.pow(growthPerMonth, month);
+                    var baseOnly = initialNAV * Math.pow(growthPerMonth, month);
+                    schedule.push({
+                        month: month,
+                        year: month / 12,
+                        nav: nav,
+                        notional: notional,
+                        baseOnly: baseOnly,
+                        ampPct: ampPct,
+                        dividendsPaid: dividendsPaid,
+                        btcPrice: btcPrice
+                    });
+                }
+
+                const last = schedule[schedule.length - 1];
+                const dividendsFirstYear = schedule.slice(1, 13).reduce(function (sum, row) { return sum + row.dividendsPaid; }, 0);
+                const dividendsLastYear = schedule.slice(-12).reduce(function (sum, row) { return sum + row.dividendsPaid; }, 0);
+                const rebalLabel = stepsPerYear === 1 ? 'each year' : stepsPerYear === 4 ? 'each quarter' : 'each month';
+                var navCagrPct = horizon > 0 && initialNAV > 0 && last.nav > 0
+                    ? (Math.pow(last.nav / initialNAV, 1 / horizon) - 1) * 100
+                    : 0;
+
+                return {
+                    schedule,
+                    initialNAV,
+                    finalNAV: last.nav,
+                    initialNotional: schedule[0].notional,
+                    finalNotional: last.notional,
+                    dividendsFirstYear,
+                    dividendsLastYear,
+                    ampPct: ampTargetPct,
+                    divPct,
+                    cagrPct,
+                    navCagrPct: navCagrPct,
+                    rebalLabel,
+                    horizon
+                };
+            }
+
+            function updateHeaderCards(r) {
+                cardFinalNav.textContent = formatB(r.finalNAV);
+                const gainAbs = r.finalNAV - r.initialNAV;
+                const gainPct = r.initialNAV > 0 ? (gainAbs / r.initialNAV) * 100 : 0;
+                const sign = gainAbs >= 0 ? '+' : '';
+                cardTotalReturn.textContent = sign + formatB(gainAbs) + ' (' + sign + gainPct.toFixed(1) + '%)';
+                cardAnnualCagr.textContent = r.navCagrPct.toFixed(1) + '%';
+                cardFinalNotional.textContent = formatB(r.finalNotional);
+            }
+
+            function updateDisplays() {
+                const navBillions = Math.max(0.1, Math.min(100, Number(initialNavEl.value) || 50));
+                navDisplay.textContent = navBillions >= 10 ? String(Math.round(navBillions)) : navBillions.toFixed(1);
+                ampDisplay.textContent = ampTargetEl.value + '%';
+                cagrDisplay.textContent = cagrEl.value + '%';
+                divDisplay.textContent = dividendRateEl.value + '%';
+                horizonDisplay.textContent = timeHorizonEl.value;
+
+                const r = runSimulation();
+                updateHeaderCards(r);
+
+                chartTitle.textContent = r.ampPct + '% Amplification with ' + r.divPct + '% Coupon, ' + r.cagrPct + '% NAV CAGR';
+
+                highlightsList.innerHTML =
+                    '<li>NAV grows from <strong>' + formatB(r.initialNAV) + '</strong> → <strong>' + formatB(r.finalNAV) + '</strong></li>' +
+                    '<li>Notional (' + r.ampPct + '% amplified layer) grows from <strong>' + formatB(r.initialNotional) + '</strong> → <strong>' + formatB(r.finalNotional) + '</strong></li>' +
+                    '<li>Dividends paid in year 1 → final year: <strong>' + formatB(r.dividendsFirstYear) + '</strong> → <strong>' + formatB(r.dividendsLastYear) + '</strong></li>';
+                rebalanceNote.textContent = 'Dividends are paid monthly on notional outstanding (out of NAV). Rebalancing is separate: ' + r.rebalLabel + ' we reset notional to ' + r.ampPct + '% of NAV (further issuance to hit target). Chart is drawn from the full schedule.';
+
+                const scheduleBody = document.getElementById('scheduleBody');
+                function formatBtcPrice(p) {
+                    if (p >= 1e6) return '$' + (p / 1e6).toFixed(2) + 'M';
+                    if (p >= 1000) return '$' + (p / 1000).toFixed(0) + 'k';
+                    return '$' + Math.round(p);
+                }
+                scheduleBody.innerHTML = r.schedule.map(function (row) {
+                    const monthLabel = 'Y' + Math.floor(row.month / 12) + ' M' + (row.month % 12);
+                    var btcCell = row.month === 0
+                        ? '<input type="number" id="scheduleBtcPrice0" class="schedule-btc-input" value="' + Math.round(row.btcPrice) + '" min="100" step="1000" title="Starting BTC price (theoretical)">'
+                        : formatBtcPrice(row.btcPrice);
+                    return '<tr><td>' + monthLabel + '</td><td>' + row.ampPct.toFixed(2) + '%</td><td>' + formatB(row.nav) + '</td><td>' + formatB(row.baseOnly) + '</td><td>' + formatB(row.notional) + '</td><td>' + formatB(row.dividendsPaid) + '</td><td>' + btcCell + '</td></tr>';
+                }).join('');
+                var scheduleBtcInput = document.getElementById('scheduleBtcPrice0');
+                if (scheduleBtcInput) {
+                    scheduleBtcInput.addEventListener('change', function () {
+                        startingBtcPrice = Math.max(100, Number(this.value) || 100000);
+                        updateDisplays();
+                    });
+                }
+
+                var chartX = r.schedule.map(function (row) { return row.year; });
+                var chartNav = r.schedule.map(function (row) { return row.nav; });
+                var chartNotional = r.schedule.map(function (row) { return row.notional; });
+                var chartBaseOnly = r.schedule.map(function (row) { return row.baseOnly; });
+                var gainPct = r.schedule.map(function (row) {
+                    var pct = r.initialNAV > 0 ? ((row.nav - r.initialNAV) / r.initialNAV) * 100 : 0;
+                    return Math.round(pct * 10) / 10;
+                });
+                var gainPctBaseOnly = r.schedule.map(function (row) {
+                    var pct = r.initialNAV > 0 ? ((row.baseOnly - r.initialNAV) / r.initialNAV) * 100 : 0;
+                    return Math.round(pct * 10) / 10;
+                });
+                var ampPctArr = r.schedule.map(function (row) {
+                    return Math.round(row.ampPct * 100) / 100;
+                });
+                var customDataNav = r.schedule.map(function (row, i) {
+                    return [gainPct[i], ampPctArr[i], row.notional];
+                });
+                var customDataNotional = r.schedule.map(function (row, i) {
+                    return [gainPct[i], ampPctArr[i], row.nav];
+                });
+                var hoverTemplateBaseOnly = '<b>Year %{x:.2f}</b><br>' +
+                    'Portfolio (no amp): $%{y:.1f}B<br>' +
+                    '% gain from initial: %{customdata[0]:+.1f}%<extra></extra>';
+                var hoverTemplate = '<b>Year %{x:.2f}</b><br>' +
+                    'Amplified BTC: $%{y:.1f}B<br>' +
+                    'Notional: $%{customdata[2]:.1f}B<br>' +
+                    '% gain from initial: %{customdata[0]:+.1f}%<br>' +
+                    'Amplification: %{customdata[1]:.2f}%<extra></extra>';
+                var hoverTemplateNotional = '<b>Year %{x:.2f}</b><br>' +
+                    'Amplified BTC: $%{customdata[2]:.1f}B<br>' +
+                    'Notional: $%{y:.1f}B<br>' +
+                    '% gain from initial: %{customdata[0]:+.1f}%<br>' +
+                    'Amplification: %{customdata[1]:.2f}%<extra></extra>';
+                Plotly.react('chart', [
+                    {
+                        x: chartX,
+                        y: chartNav,
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: 'Amplified BTC',
+                        line: { color: '#a855f7', width: 2 },
+                        customdata: customDataNav,
+                        hovertemplate: hoverTemplate
+                    },
+                    {
+                        x: chartX,
+                        y: chartBaseOnly,
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: 'Portfolio (no amp)',
+                        line: { color: '#FF7700', width: 2 },
+                        customdata: r.schedule.map(function (row, i) { return [gainPctBaseOnly[i]]; }),
+                        hovertemplate: hoverTemplateBaseOnly
+                    },
+                    {
+                        x: chartX,
+                        y: chartNotional,
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: 'Notional (' + r.ampPct + '% Amp)',
+                        line: { color: '#FF1744', width: 2, shape: 'hv' },
+                        customdata: customDataNotional,
+                        hovertemplate: hoverTemplateNotional
+                    }
+                ], {
+                    margin: { t: 50, r: 50, b: 50, l: 60 },
+                    xaxis: {
+                        title: 'Year',
+                        gridcolor: 'rgba(255,255,255,0.06)',
+                        zerolinecolor: 'rgba(255,255,255,0.1)'
+                    },
+                    yaxis: {
+                        title: '$ Billions',
+                        gridcolor: 'rgba(255,255,255,0.06)',
+                        zerolinecolor: 'rgba(255,255,255,0.1)',
+                        tickformat: ',d'
+                    },
+                    showlegend: true,
+                    legend: { x: 0, y: 1.08, orientation: 'h' },
+                    paper_bgcolor: 'rgba(0,0,0,0)',
+                    plot_bgcolor: 'rgba(0,0,0,0)',
+                    font: { color: '#E0E0E0', family: 'Space Grotesk, sans-serif' },
+                    hoverlabel: {
+                        bgcolor: '#0d0d0d',
+                        bordercolor: '#FF7700',
+                        font: { family: 'Space Grotesk, sans-serif', size: 12, color: '#E0E0E0' },
+                        align: 'left'
+                    },
+                    hovermode: 'closest'
+                }, { responsive: true });
+            }
+
+            function startSliderValueEdit(valEl, slider) {
+                if (valEl.querySelector('input.control-value-edit')) return;
+                var min = parseFloat(slider.min);
+                var max = parseFloat(slider.max);
+                var step = parseFloat(slider.step) || 1;
+                var current = parseFloat(slider.value);
+                var prevText = valEl.textContent;
+                var input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'control-value-edit';
+                input.value = current;
+                valEl.textContent = '';
+                valEl.appendChild(input);
+                input.focus();
+                input.select();
+                function commit() {
+                    var raw = input.value.replace(/[^0-9.-]/g, '');
+                    var v = parseFloat(raw);
+                    if (input.parentNode !== valEl) return;
+                    valEl.removeChild(input);
+                    if (!isNaN(v)) {
+                        v = Math.max(min, Math.min(max, v));
+                        v = Math.round(v / step) * step;
+                        v = Math.max(min, Math.min(max, v));
+                        slider.value = String(v);
+                        updateDisplays();
+                    } else {
+                        valEl.textContent = prevText;
+                    }
+                }
+                function cancel() {
+                    if (input.parentNode !== valEl) return;
+                    valEl.removeChild(input);
+                    valEl.textContent = prevText;
+                }
+                input.addEventListener('blur', function onBlur() {
+                    if (input.parentNode !== valEl) return;
+                    input.removeEventListener('blur', onBlur);
+                    commit();
+                });
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+                    if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+                });
+            }
+            document.querySelectorAll('.control-section .control-group').forEach(function(group) {
+                var slider = group.querySelector('input[type="range"]');
+                var valEl = group.querySelector('.control-value');
+                if (!slider || !valEl) return;
+                valEl.setAttribute('data-editable', 'true');
+                valEl.addEventListener('click', function() { startSliderValueEdit(valEl, slider); });
+            });
+
+            initialNavEl.addEventListener('input', updateDisplays);
+            cagrEl.addEventListener('input', updateDisplays);
+            dividendRateEl.addEventListener('input', updateDisplays);
+            ampTargetEl.addEventListener('input', updateDisplays);
+            rebalancingPeriodEl.addEventListener('change', updateDisplays);
+            timeHorizonEl.addEventListener('input', updateDisplays);
+
+            updateDisplays();
+        })();
+    </script>
+</body>
+</html>
